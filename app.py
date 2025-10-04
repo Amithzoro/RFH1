@@ -56,39 +56,37 @@ def load_data():
 
 df = load_data()
 
-# --- Entry Form ---
-with st.form("expense_entry", clear_on_submit=True):
-    st.subheader("➕ Add New Expense")
+# --- Category selection OUTSIDE the form (for live update) ---
+st.subheader("➕ Add New Expense")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        date = st.date_input("Date", datetime.now().date())
-        time = st.time_input("Time", datetime.now().time().replace(microsecond=0))
-        category = st.selectbox("Category", list(category_products.keys()))
-        product = st.selectbox("Product / Item Name", category_products.get(category, []))
-    with col2:
-        amount = st.number_input("Amount (₹)", min_value=0.0, step=0.01)
-        payment_mode = st.selectbox("Payment Mode", payment_modes)
-        game_currency_choice = st.selectbox("🎮 Game Currency (only for Gaming)", game_currency)
-        notes = st.text_input("Notes (optional)")
+col1, col2 = st.columns(2)
+with col1:
+    date = st.date_input("Date", datetime.now().date())
+    time = st.time_input("Time", datetime.now().time().replace(microsecond=0))
+    category = st.selectbox("Category", list(category_products.keys()))
+    product = st.selectbox("Product / Item Name", category_products.get(category, []))
+with col2:
+    amount = st.number_input("Amount (₹)", min_value=0.0, step=0.01)
+    payment_mode = st.selectbox("Payment Mode", payment_modes)
+    game_currency_choice = st.selectbox("🎮 Game Currency (only for Gaming)", game_currency)
+    notes = st.text_input("Notes (optional)")
 
-    submitted = st.form_submit_button("💾 Add Expense")
+# --- Submission button (outside form to allow live updates) ---
+if st.button("💾 Add Expense"):
+    new_entry = {
+        "Date": date.strftime("%Y-%m-%d"),
+        "Time": time.strftime("%H:%M"),
+        "Category": category,
+        "Product": product,
+        "Amount": amount,
+        "Payment Mode": payment_mode,
+        "Game Currency": game_currency_choice if category == "Gaming" else "None",
+        "Notes": notes
+    }
 
-    if submitted:
-        new_entry = {
-            "Date": date.strftime("%Y-%m-%d"),
-            "Time": time.strftime("%H:%M"),
-            "Category": category,
-            "Product": product,
-            "Amount": amount,
-            "Payment Mode": payment_mode,
-            "Game Currency": game_currency_choice if category == "Gaming" else "None",
-            "Notes": notes
-        }
-
-        df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
-        df.to_csv("expenses.csv", index=False)
-        st.success("✅ Expense Added Successfully!")
+    df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
+    df.to_csv("expenses.csv", index=False)
+    st.success("✅ Expense Added Successfully!")
 
 # --- Display and Analysis ---
 st.subheader("📊 Expense Summary")
@@ -99,7 +97,6 @@ if not df.empty:
     total = df["Amount"].sum()
     st.markdown(f"### 💸 Total Expenses: ₹{total:.2f}")
 
-    # --- Chart: Expenses by Category ---
     chart_data = df.groupby("Category")["Amount"].sum().sort_values(ascending=False)
     st.bar_chart(chart_data)
 else:
